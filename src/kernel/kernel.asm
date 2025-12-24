@@ -13,7 +13,11 @@ main:
 	mov ax, 0
 	; print message
 	mov si, hello
-
+    call puts
+	
+puts:
+	; save registers we will modify
+	push ax
 .loop:
 	lodsb	;loads next charcter in al
 	or al, al ;verify if next character is null?
@@ -24,7 +28,8 @@ main:
     jmp .loop
 .done:
 	int 0x00
-
+	pop ax
+	ret
 
 ; Define variables in the data section
 SECTION .DATA

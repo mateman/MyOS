@@ -15,6 +15,7 @@ $(BUILD_DIR)/main_floppy.img: bootloader kernel
 	dd if=/dev/zero of=$(BUILD_DIR)/main_floppy.img bs=512 count=2880
 	mkfs.vfat -F 12 -n "MyOS" $(BUILD_DIR)/main_floppy.img
 	dd if=$(BUILD_DIR)/boot.bin of=$(BUILD_DIR)/main_floppy.img conv=notrunc
+	mcopy -i $(BUILD_DIR)/main_floppy.img $(BUILD_DIR)/main.bin "::main.bin"
 	mcopy -i $(BUILD_DIR)/main_floppy.img $(BUILD_DIR)/kernel.bin "::kernel.bin"
 	mcopy -i $(BUILD_DIR)/main_floppy.img test.txt "::test.txt"
 
@@ -26,7 +27,8 @@ $(BUILD_DIR)/boot.bin: always
 # Create Kernel
 kernel: $(BUILD_DIR)/kernel.bin
 $(BUILD_DIR)/kernel.bin: always
-	$(ASM) $(SRC_DIR)/kernel/kernel.asm -f bin -o $(BUILD_DIR)/kernel.bin
+	$(ASM) $(SRC_DIR)/kernel/kernel2.asm -f bin -o $(BUILD_DIR)/kernel.bin
+	$(ASM) $(SRC_DIR)/kernel/kernel.asm -f bin -o $(BUILD_DIR)/main.bin
 
 # Tools
 tools_fat: $(BUILD_DIR)/tools/fat
