@@ -53,7 +53,7 @@ start:
 
     ; Incrementar la fila por 1
     mov dh,11       ; Fila inicial
-    mov dl, 5       ; Columna inicial
+    mov dl, cursor_pos - prompt_msg - 1 ; Columna inicial
         
         mov [cursor_row], dh        ; Guardar la fila en memoria
         mov [cursor_col], dl        ; Guardar la columna en memoria   
@@ -139,14 +139,41 @@ start:
         jmp shell_loop          ; Repetir bucle
 
     process_enter:
+
             mov dh, [cursor_row]    ; Restaurar fila
             mov dl, [cursor_col]    ; Restaurar columna
 
+        cmp dh, 24              ; ¿Estamos en la última fila (24)?
+        jl .not_last_row
+            ; Si estamos en la última fila, desplazar todo hacia arriba
+            push si
+            push di
+            push ds
+            mov ax, 0xB800  ; Segmento de memoria de video
+            mov ds, ax         ; Pongo DS=ES para mover con movsw
+            mov si, 160     ; Inicio del mensaje del prompt
+            mov di, 0 ; Inicio de la segunda fila
+            mov cx, 24 * 80 * 2 ; Número de bytes a mover (filas restantes)
+            rep movsw              ; Mover filas hacia arriba  
+            ; Limpiar la última fila
+            mov cx, 80             ; Número de columnas
+            mov al, ' '            ; Carácter espacio
+            mov ah, 0x07           ; Atributo blanco sobre negro 
+            stosw
+            pop ds
+            pop di
+            pop si
+            jmp .escribir_p 
+
+.not_last_row:
         ; incrementar la fila por 1
         add dh, 1               ; Incrementar la fila actual en 1    
-        mov dl, 0               ; Reiniciar columna
 
             mov [cursor_row], dh    ; Guardar la fila en memoria
+
+.escribir_p:
+        mov dl, 0               ; Reiniciar columna
+
             mov [cursor_col], dl    ; Guardar la columna en memoria
         
         call set_cursor         ; Actualiza el cursor en memoria
@@ -161,7 +188,7 @@ start:
             mov dl, [cursor_col]    ; Restaurar columna
         
         ; Incrementar fila por 1
-        mov dl, 5                       ; Columna inicial
+        mov dl, cursor_pos - prompt_msg - 1 ; Columna inicial
             mov [cursor_row], dh        ; Guardar la fila en memoria
             mov [cursor_col], dl        ; Guardar la columna en memoria
 
@@ -236,7 +263,7 @@ start:
         jmp shell_loop          ; Repetir bucle
 
     borrar_caracter:
-        cmp byte [cursor_col],5 ; ¿Esta al principio del prompt?
+        cmp byte [cursor_col], cursor_pos - prompt_msg - 1 ; ¿Esta al principio del prompt?
         jbe shell_loop          ; Si esta al principio, no moverse
             call borrar_izquierda
             jmp shell_loop
@@ -244,7 +271,7 @@ start:
     borrar_izquierda:
         ; Verificar si estamos al inicio del prompt (columna 9)
         mov dl, [cursor_col]
-        cmp dl, 5                ; ¿Esta al principio del prompt?
+        cmp dl, cursor_pos - prompt_msg - 1 ; ¿Esta al principio del prompt?
         jbe shell_loop           ; Si es el inicio, no hace nada
             
         ; Retroceder una posición en cursor_col
