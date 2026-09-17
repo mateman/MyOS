@@ -54,7 +54,7 @@ puts:
 
 main:
 	; setup data segments
-	mov ax,0	; can't write ds/es directly
+	xor ax,ax	; can't write ds/es directly
 	mov ds, ax
 	mov es, ax
 	
@@ -274,10 +274,7 @@ lba_to_chs:
 ;
 disk_read:
 
-    push ax                             ; save registers we will modify
-    push bx
-    push cx
-    push dx
+    pusha
     push di
 
     push cx                             ; temporarily save CL (number of sectors to read)
@@ -307,12 +304,9 @@ disk_read:
 
 .done:
     popa
-
-    pop di
-    pop dx
-    pop cx
-    pop bx
-    pop ax                             ; restore registers modified
+    pop di ; restore registers modified
+    popa
+    
     ret
 
 

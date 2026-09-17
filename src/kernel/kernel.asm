@@ -14,7 +14,8 @@ main:
 	; print message
 	mov si, hello
     call puts
-	hlt
+	jmp $
+	
 puts:
 	; save registers we will modify
 	push ax

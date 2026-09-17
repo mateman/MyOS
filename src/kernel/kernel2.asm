@@ -1,5 +1,5 @@
 bits 16
-org 0x0
+[org 0x0000]            ; CORRECCIÓN: El Kernel ahora corre seguro en la dirección 0x8E00
 
 ; En 0xB800 se encuentra la memoria de video para modo texto
 ; Cada carácter ocupa 2 bytes: 1 byte para el código ASCII y 1 byte para el atributo (color)
