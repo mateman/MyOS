@@ -7,9 +7,10 @@ TOOLS_DIR=tools
 
 .PHONY: all floppy_image hard_disk_image kernel bootloader clean always
 
-all: bootloader-fat12 bootloader-fat16 kernel floppy_image hard_disk_image
-fat16: bootloader-fat16 kernel hard_disk_image
+all: bootloader-fat12 bootloader-fat16 kernel floppy_image hard_disk_image_fat16
+fat16: bootloader-fat16 kernel hard_disk_image_fat16
 fat12: bootloader-fat12 kernel floppy_image 
+ext2: bootloader-ext2 kernel hard_disk_image_ext2
 
 # Create Floppy image
 floppy_image: $(BUILD_DIR)/MyOS_floppy.img
@@ -23,17 +24,38 @@ $(BUILD_DIR)/MyOS_floppy.img: bootloader-fat12 kernel
 	mcopy -i $(BUILD_DIR)/MyOS_floppy.img test.txt "::test.txt"
 
 # Create Hard Disk image
-hard_disk_image: $(BUILD_DIR)/MyOS_hard_disk.img
-$(BUILD_DIR)/MyOS_hard_disk.img: bootloader-fat16 kernel
-	dd if=/dev/zero of=$(BUILD_DIR)/MyOS_hard_disk.img bs=512 count=20543
-	dd if=$(BUILD_DIR)/mbr-fat16.bin of=$(BUILD_DIR)/MyOS_hard_disk.img bs=512 count=1 conv=notrunc
-	mkfs.vfat -F 16 --offset 63 -h 63 -n My_OS $(BUILD_DIR)/MyOS_hard_disk.img 20480
-	dd if=$(BUILD_DIR)/vbr-fat16.bin of=$(BUILD_DIR)/MyOS_hard_disk.img bs=1 count=3 seek=32256 conv=notrunc
-	dd if=$(BUILD_DIR)/vbr-fat16.bin of=$(BUILD_DIR)/MyOS_hard_disk.img bs=1 skip=62 seek=32318 conv=notrunc
+hard_disk_image_fat16: $(BUILD_DIR)/MyOS_hard_disk_fat16.img
+$(BUILD_DIR)/MyOS_hard_disk_fat16.img: bootloader-fat16 kernel
+	dd if=/dev/zero of=$(BUILD_DIR)/MyOS_hard_disk_fat16.img bs=512 count=20543
+	dd if=$(BUILD_DIR)/mbr-fat16.bin of=$(BUILD_DIR)/MyOS_hard_disk_fat16.img bs=512 count=1 conv=notrunc
+	mkfs.vfat -F 16 --offset 63 -h 63 -n My_OS $(BUILD_DIR)/MyOS_hard_disk_fat16.img 20480
+	dd if=$(BUILD_DIR)/vbr-fat16.bin of=$(BUILD_DIR)/MyOS_hard_disk_fat16.img bs=1 count=3 seek=32256 conv=notrunc
+	dd if=$(BUILD_DIR)/vbr-fat16.bin of=$(BUILD_DIR)/MyOS_hard_disk_fat16.img bs=1 skip=62 seek=32318 conv=notrunc
 
-	mcopy -i $(BUILD_DIR)/MyOS_hard_disk.img@@32256 $(BUILD_DIR)/main.bin "::main.bin"
-	mcopy -i $(BUILD_DIR)/MyOS_hard_disk.img@@32256 $(BUILD_DIR)/kernel.bin "::kernel.bin"
-	mcopy -i $(BUILD_DIR)/MyOS_hard_disk.img@@32256 test.txt "::test.txt"
+	mcopy -i $(BUILD_DIR)/MyOS_hard_disk_fat16.img@@32256 $(BUILD_DIR)/main.bin "::main.bin"
+	mcopy -i $(BUILD_DIR)/MyOS_hard_disk_fat16.img@@32256 $(BUILD_DIR)/kernel.bin "::kernel.bin"
+	mcopy -i $(BUILD_DIR)/MyOS_hard_disk_fat16.img@@32256 test.txt "::test.txt"
+
+# Create Hard Disk image (ext2)
+# 20543 sectores = 63 (hueco MBR+Stage2) + 20480 (particion), igual que en fat16
+hard_disk_image_ext2: $(BUILD_DIR)/MyOS_hard_disk_ext2.img
+$(BUILD_DIR)/MyOS_hard_disk_ext2.img: bootloader-ext2 kernel
+	dd if=/dev/zero of=$(BUILD_DIR)/MyOS_hard_disk_ext2.img bs=512 count=20543
+
+	LOOPDEV=$$(sudo losetup --find --show -o 32256 $(BUILD_DIR)/MyOS_hard_disk_ext2.img); \
+	sudo mkfs.ext2 -F -b 1024 -I 128 $$LOOPDEV; \
+	sudo mkdir -p /mnt/ext2_kernel_tmp; \
+	sudo mount $$LOOPDEV /mnt/ext2_kernel_tmp; \
+	sudo cp $(BUILD_DIR)/kernel.bin /mnt/ext2_kernel_tmp/kernel.bin; \
+	sudo cp $(BUILD_DIR)/main.bin /mnt/ext2_kernel_tmp/main.bin; \
+	sudo cp test.txt /mnt/ext2_kernel_tmp/test.txt; \
+	sudo umount /mnt/ext2_kernel_tmp; \
+	sudo losetup -d $$LOOPDEV
+
+	dd if=$(BUILD_DIR)/mbr-ext2.bin of=$(BUILD_DIR)/MyOS_hard_disk_ext2.img bs=512 count=1 conv=notrunc
+	dd if=$(BUILD_DIR)/stage2-ext2.bin of=$(BUILD_DIR)/MyOS_hard_disk_ext2.img bs=512 seek=1 conv=notrunc
+	dd if=$(BUILD_DIR)/vbr-ext2.bin of=$(BUILD_DIR)/MyOS_hard_disk_ext2.img bs=512 seek=63 conv=notrunc
+
 
 
 # Create Bootloader para floppy
@@ -46,6 +68,14 @@ bootloader-fat16: $(BUILD_DIR)/boot-fat16.bin
 $(BUILD_DIR)/boot-fat16.bin: always
 	$(ASM) -f bin $(SRC_DIR)/bootloader/fat16/mbr.asm -o $(BUILD_DIR)/mbr-fat16.bin
 	$(ASM) -f bin $(SRC_DIR)/bootloader/fat16/vbr.asm -o $(BUILD_DIR)/vbr-fat16.bin
+
+# Create Bootloader para imagen de hd
+bootloader-ext2: $(BUILD_DIR)/boot-ext2.bin
+$(BUILD_DIR)/boot-ext2.bin: always
+	$(ASM) -f bin $(SRC_DIR)/bootloader/ext2/mbr.asm -o $(BUILD_DIR)/mbr-ext2.bin
+	$(ASM) -f bin $(SRC_DIR)/bootloader/ext2/vbr.asm -o $(BUILD_DIR)/vbr-ext2.bin
+	$(ASM) -f bin $(SRC_DIR)/bootloader/ext2/stage2.asm -o $(BUILD_DIR)/stage2-ext2.bin
+
 
 # Create Kernel
 kernel: $(BUILD_DIR)/kernel.bin
