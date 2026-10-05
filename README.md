@@ -6,12 +6,17 @@
 <P><B><I>main_floppy</I></B> es la imagen del sistema ya instalado para poder probarlo con qemu, virtualbox o vmware</P>
 <P>----------------------------------------------------------------------------------------------</P>
 <P></P>
-<P>--------------------------------- Readme del &uacuteltimo commit</P>
+<P>--------------------------------- Readme del commit 6c2f48d35959f0edb4a53a8f0fc3dde923525c9c</P>
 <P><B><I>bootloader/fat12/boot-fat12.asm</I></B> es el bootloader a colocar en el primer sector de un floppy</P>
 <P>Mientras que para en fat16 tengo dos archivos, uno el mbr que se coloca en el primer sector del disco y el vbr que se coloca en el primer sector de la participación&oacuten que booteara el sistema</P>
 <P><B><I>bootloader/fat16/mbr.asm</I></B> en el final de este se encuentra la tabla primaria de particiones y la primera partici&oacuten comienza en el sector 63</P>
-<P><B><I>bootloader/fat16/vbr.asm</I></B> este se coloca en la primer partici&oacuten en dos partes, por un lado los primeros 3 bytes y por otro desde el byte 62 hasta el 512, y esto es para no pisar la tabla BPB puesta por el programa que formateo la participación&oacuten</P>
-<P><B><I>kernel/</I></B> tengo tres modelos de kernel básicos para probar que el bootloader carga un SO, estoy usando el kernel2.asm como principal en la prueba </P>
+<P><B><I>bootloader/fat16/vbr.asm</I></B> este se coloca en la primer partici&oacuten en dos partes, por un lado los primeros 3 bytes y por otro desde el byte 62 hasta el 512, y esto es para no pisar la tabla BPB puesta por el programa que formateo la participaci&oacuten</P>
+<P><B><I>kernel/</I></B> tengo tres modelos de kernel b&acutesicos para probar que el bootloader carga un SO, estoy usando el kernel2.asm como principal en la prueba </P>
 <P><B><I>MyOS_floppy.img y MyOS_hard_disk.img</I></B> son las imagenes del sistema ya instalado para poder probarlo con qemu, virtualbox o vmware</P>
 <P><B><I>run.sh</I></B> es un script para ejecutar una maquina qemu </P>
 <P>---------------------------------------------------------------------------------------------</P>
+<P>--------------------------------- Readme del &uacuteltimo commit </P>
+<P> En este commit agregue un bootloader para ext2, el programa para leer la ra&icutez del filesystem lamenteblemente es mayor que 512 por lo que necesito colocarlo en m&acutes de un sector. </p>
+<P> El archivo mbr.asm sigue siendo el mismo que el que uso para fat16, este llama a vbr que esta guardado en la posici&ocuten 0x7E00, este vbr se encarga de colocar en memoria al stage2.asm y una vez cargado salta a ejecutarlo. </P>
+<P> stage2.asm es el c&ocutedigo que se encarga de leer el filesystem en busca de un archivo llamado kernel.bin. Una vez encontrado lo coloca en memoria y pasa a ejecutarlo. Habiendo terminado ah&icute el booteo </P>
+<P>Dentro de src/bootloader/fat16 tengo un directorio con archivos .asm para hacer pruebas </P>
